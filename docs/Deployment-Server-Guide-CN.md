@@ -459,7 +459,7 @@ serve -s dist -l 8003
 创建一个专用的 systemd service 文件，让 `serve` 在后台持续运行并开机自启。
 
 ```bash
-sudo nano /etc/systemd/system/nomenclatura-serve.service
+sudo nano /etc/systemd/system/nomenclatura.service
 ```
 
 写入以下内容：
@@ -471,19 +471,19 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/opt/nomenclatura-app
-ExecStart=/usr/bin/serve -s dist -l 8003
+User=rootadmin
+Group=rootadmin
+WorkingDirectory=/home/rootadmin/portal-suite/nomenclatura
+ExecStart=/usr/local/bin/serve -s dist -l 8003
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
 
-# 安全加固
+# segridad
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/nomenclatura-app
+ReadWritePaths=/home/rootadmin/portal-suite/nomenclatura
 
 [Install]
 WantedBy=multi-user.target
@@ -508,13 +508,13 @@ sudo chmod -R 755 /opt/nomenclatura-app
 sudo systemctl daemon-reload
 
 # 启动服务
-sudo systemctl start nomenclatura-serve
+sudo systemctl start nomenclatura
 
 # 设置开机自启
-sudo systemctl enable nomenclatura-serve
+sudo systemctl enable nomenclatura
 
 # 查看运行状态
-sudo systemctl status nomenclatura-serve
+sudo systemctl status nomenclatura
 ```
 
 期望输出中包含 `Active: active (running)`。
