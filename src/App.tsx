@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Download, Loader2, RotateCcw } from 'lucide-react';
+import { AlertCircle, Download, Loader2, RotateCcw } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -212,7 +212,22 @@ function App() {
           )}
 
           {/* Main content: single vs batch */}
-          {files.length > 0 && (
+          {files.length > 0 && department === 'otros' && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  Este departamento no tiene reglas de nomenclatura definidas
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground/70 max-w-md">
+                  Actualmente solo el departamento de Auditoría dispone de reglas de nomenclatura.
+                  En el futuro, cada departamento proporcionará sus propias reglas y catálogos de forma completamente independiente.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {files.length > 0 && department === 'auditoria' && (
             <Tabs value={activeTab} className="space-y-4">
               {files.length > 1 && (
                 <TabsList>
@@ -296,9 +311,15 @@ function App() {
                 <p className="text-sm text-muted-foreground">
                   Arrastra uno o varios archivos para comenzar
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Los archivos que ya siguen la nomenclatura se rellenarán automáticamente
-                </p>
+                {department === 'auditoria' ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Los archivos que ya siguen la nomenclatura se rellenarán automáticamente
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    Este departamento aún no tiene reglas de nomenclatura definidas
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
