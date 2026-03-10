@@ -30,6 +30,7 @@ import { buildFileName } from '@/lib/name-builder';
 import { renameFile } from '@/lib/file-rename';
 import { addClientAlias } from '@/lib/storage';
 import type { NomenclaturaFields, HistoryEntry } from '@/types';
+import { createDefaultFields } from '@/types';
 
 function App() {
   const {
@@ -72,10 +73,32 @@ function App() {
   const isBatchMode = files.length > 1;
   const activeTab = isBatchMode ? 'batch' : 'single';
 
-  // Auto-select first file when files change
+  // Use file-specific fields when a file is selected, otherwise use global fields
   const currentFields = selectedFile
-    ? { ...fields, ...selectedFile.fields }
+    ? selectedFile.fields
     : fields;
+
+  // When a file is selected, field updates go to that file's fields;
+  // otherwise they go to the global form fields.
+  const handleSetField = useCallback(
+    <K extends keyof NomenclaturaFields>(key: K, value: NomenclaturaFields[K]) => {
+      if (selectedFile) {
+        updateFileFields(selectedFile.id, { [key]: value });
+      } else {
+        setField(key, value);
+      }
+    },
+    [selectedFile, updateFileFields, setField]
+  );
+
+  // Reset fields for the selected file or the global form
+  const handleResetFields = useCallback(() => {
+    if (selectedFile) {
+      updateFileFields(selectedFile.id, createDefaultFields());
+    } else {
+      resetFields();
+    }
+  }, [selectedFile, updateFileFields, resetFields]);
 
   const handleRename = useCallback(async () => {
     if (!selectedFile || !isValid) return;
@@ -191,7 +214,7 @@ function App() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">Campos de nomenclatura</CardTitle>
-                      <Button variant="ghost" size="sm" onClick={resetFields}>
+                      <Button variant="ghost" size="sm" onClick={handleResetFields}>
                         <RotateCcw className="mr-1 h-3 w-3" /> Resetear
                       </Button>
                     </div>
@@ -199,7 +222,7 @@ function App() {
                   <CardContent>
                     <NomenclaturaForm
                       fields={currentFields}
-                      setField={setField}
+                      setField={handleSetField}
                       clientSuggestions={clientSuggestions}
                       detectedVersion={selectedFile?.detectedVersion}
                     />

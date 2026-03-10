@@ -75,7 +75,7 @@ export function useFileDrop(): UseFileDropReturn {
     onDrop,
     multiple: true,
     noClick: false,
-    noKeyboard: false,
+    noKeyboard: true,
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone(dropzoneOptions);
