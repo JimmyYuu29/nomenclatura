@@ -1,73 +1,61 @@
-# React + TypeScript + Vite
+# Nomenclatura App V2.0
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web para el renombrado automático de archivos según la nomenclatura unificada de **Forvis Mazars**.
 
-Currently, two official plugins are available:
+## Formato de nomenclatura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+ALIAS-SERVICIO-PERIODO-ACRONIMO-FECHA-VERSION-ESTADO.ext
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Novedades V2.0
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Catálogos actualizados** — Acrónimos de documentos, Servicios AX y Estados de documento sincronizados con la revisión V2 de Belén
+- **Actualización de catálogos por Excel** — Los usuarios autorizados pueden subir un archivo Excel (dos columnas: Código + Descripción) para actualizar Acrónimo Documento, Servicio AX y Estado Documento, con resolución de conflictos y protección por contraseña
+- **Selector de año/mes mejorado** — Los campos de fecha ahora incluyen selectores desplegables de mes y año para navegar rápidamente a fechas lejanas
+- **Selector de departamento** — Soporte multi-departamento (Auditoría, Otros) desde el encabezado, preparado para reglas de nomenclatura por departamento
+- **Pie de página corporativo** — Identificación IT Innovation V2.0 con dirección de oficina Barcelona
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tecnologías
+
+| Componente | Tecnología |
+|------------|-----------|
+| Framework | React 19 + TypeScript 5.9 |
+| Build | Vite 7 |
+| UI | shadcn/ui + Tailwind CSS 4 |
+| Fechas | date-fns 4 (locale es) |
+| Búsqueda | Fuse.js 7 |
+| Archivos | react-dropzone 15 |
+| Excel | xlsx (lectura de catálogos) |
+| Deploy | Docker + Nginx |
+
+## Desarrollo
+
+```bash
+npm install
+npm run dev
 ```
+
+## Build producción
+
+```bash
+npm run build
+npm run preview
+```
+
+## Docker
+
+```bash
+docker compose up -d
+```
+
+## Documentación
+
+- [PRD (ES)](docs/PRD-Nomenclatura-App.md)
+- [PRD (CN)](docs/PRD-Nomenclatura-App-CN.md)
+- [Despliegue (CN)](docs/Deployment-Server-Guide-CN.md)
+- [Teams Chatbot (ES)](docs/Guia-Integracion-Teams-Chatbot.md)
+
+---
+
+Desarrollado por **IT Innovation** · Forvis Mazars · Barcelona

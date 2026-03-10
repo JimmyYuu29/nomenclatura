@@ -20,6 +20,7 @@ import { NamePreview } from '@/components/preview/NamePreview';
 import { ValidationStatus } from '@/components/preview/ValidationStatus';
 import { BatchRenamePanel } from '@/components/batch/BatchRenamePanel';
 import { HistoryPanel } from '@/components/history/HistoryPanel';
+import { CatalogUploadDialog } from '@/components/catalog/CatalogUploadDialog';
 
 import { useFileDrop } from '@/hooks/use-file-drop';
 import { useNomenclaturaForm } from '@/hooks/use-nomenclatura-form';
@@ -67,6 +68,8 @@ function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [catalogUploadOpen, setCatalogUploadOpen] = useState(false);
+  const [department, setDepartment] = useState('auditoria');
 
   const selectedFile = files.find(f => f.id === selectedFileId) || files[0] || null;
   const isBatchMode = files.length > 1;
@@ -173,6 +176,9 @@ function App() {
       <Header
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenHelp={() => setHelpOpen(true)}
+        onOpenCatalogUpload={() => setCatalogUploadOpen(true)}
+        department={department}
+        onDepartmentChange={setDepartment}
       />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
@@ -348,6 +354,22 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Catalog upload dialog */}
+      <CatalogUploadDialog
+        open={catalogUploadOpen}
+        onOpenChange={setCatalogUploadOpen}
+        onCatalogUpdated={() => {}}
+      />
+
+      {/* Footer */}
+      <footer className="border-t bg-card mt-8">
+        <div className="mx-auto max-w-5xl px-4 py-3 text-center">
+          <p className="text-xs text-muted-foreground">
+            Desarrollado por IT Innovation V2.0 · Carrer de la Diputació, 260, Eixample, 08007 Barcelona
+          </p>
+        </div>
+      </footer>
 
       <Toaster position="bottom-right" richColors />
     </div>

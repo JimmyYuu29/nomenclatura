@@ -1,6 +1,8 @@
 import type { ServicioAX } from '@/types';
 
-export const serviciosAX: ServicioAX[] = [
+const STORAGE_KEY = 'nomenclatura_custom_servicios';
+
+const defaultServiciosAX: ServicioAX[] = [
   // SUS - Sostenibilidad
   { codigo: 'SUS_ASSU', descripcion: 'Sustainability Assurance', categoria: 'SUS', tags: ['sostenibilidad', 'assurance', 'sustainability'] },
   { codigo: 'SUS_REPORT', descripcion: 'Sustainability Reporting', categoria: 'SUS', tags: ['sostenibilidad', 'reporting', 'informe'] },
@@ -12,8 +14,8 @@ export const serviciosAX: ServicioAX[] = [
   { codigo: 'AUD_CAVCON', descripcion: 'Auditoría Voluntaria de Cuentas Anuales Consolidadas LAC', categoria: 'AUD', tags: ['auditoria', 'voluntaria', 'consolidada', 'cuentas anuales', 'LAC'] },
   { codigo: 'AUD_CAVIN', descripcion: 'Auditoría Voluntaria de Cuentas Anuales Individuales LAC', categoria: 'AUD', tags: ['auditoria', 'voluntaria', 'individual', 'cuentas anuales', 'LAC'] },
   { codigo: 'AUD_IFH', descripcion: 'Auditoría Información Financiera Histórica NO LAC', categoria: 'AUD', tags: ['auditoria', 'informacion financiera', 'historica'] },
-  { codigo: 'AUD_OEF_CO', descripcion: 'Auditoría otros estados financieros Obligatorias LAC', categoria: 'AUD', tags: ['auditoria', 'estados financieros', 'obligatoria', 'LAC'] },
-  { codigo: 'AUD_OEF_IN', descripcion: 'Auditoría otros estados financieros Voluntarias LAC', categoria: 'AUD', tags: ['auditoria', 'estados financieros', 'voluntaria', 'LAC'] },
+  { codigo: 'AUD_OEF_CO', descripcion: 'Auditoría otros estados financieros o documentos contables Obligatorias LAC', categoria: 'AUD', tags: ['auditoria', 'estados financieros', 'obligatoria', 'LAC'] },
+  { codigo: 'AUD_OEF_IN', descripcion: 'Auditoría otros estados financieros o documentos contables Voluntarias LAC', categoria: 'AUD', tags: ['auditoria', 'estados financieros', 'voluntaria', 'LAC'] },
   { codigo: 'AUD_CONSUL', descripcion: 'Consulting', categoria: 'AUD', tags: ['auditoria', 'consulting', 'consultoria'] },
   // IES - Informes Especiales
   { codigo: 'IES_AUDBAL', descripcion: 'Auditoría obligatoria de Balance', categoria: 'IES', tags: ['auditoria', 'balance', 'obligatoria'] },
@@ -50,13 +52,13 @@ export const serviciosAX: ServicioAX[] = [
   { codigo: 'OTA_AIFH', descripcion: 'Auditoría Información Financiera Histórica - Colaboración', categoria: 'OTA', tags: ['auditoria', 'financiera', 'historica', 'colaboracion'] },
   { codigo: 'OTA_CHC', descripcion: 'Certificación de Hechos Concretos', categoria: 'OTA', tags: ['certificacion', 'hechos'] },
   { codigo: 'OTA_CTAC', descripcion: 'Consultas Técnicas Sobre Aspectos Contables', categoria: 'OTA', tags: ['consultas', 'tecnicas', 'contables'] },
-  { codigo: 'OTA_ICREQ', descripcion: 'Informes Complementarios Requeridos por Supervisadores', categoria: 'OTA', tags: ['informes', 'complementarios', 'supervisores'] },
+  { codigo: 'OTA_ICREQ', descripcion: 'Informes Complementarios a los de Auditoría de Cuentas Requeridos por Supervisadores', categoria: 'OTA', tags: ['informes', 'complementarios', 'supervisores'] },
   { codigo: 'OTA_OTEI', descripcion: 'Otros Trabajos Como Experto Independiente', categoria: 'OTA', tags: ['experto', 'independiente', 'trabajos'] },
   { codigo: 'OTA_OTR', descripcion: 'Otros', categoria: 'OTA', tags: ['otros'] },
   { codigo: 'OTA_PAIF', descripcion: 'Procedimientos Acordados Sobre Información Financiera', categoria: 'OTA', tags: ['procedimientos', 'acordados', 'financiera'] },
   { codigo: 'OTA_PAINF', descripcion: 'Procedimientos Acordados Sobre Información NO Financiera', categoria: 'OTA', tags: ['procedimientos', 'acordados', 'no financiera'] },
   { codigo: 'OTA_RLIFH', descripcion: 'Revisión Limitada Información Financiera Histórica', categoria: 'OTA', tags: ['revision', 'limitada', 'financiera', 'historica'] },
-  { codigo: 'OTA_TADIFH', descripcion: 'Trabajos de Aseguramiento Distintos de Información Financiera Histórica', categoria: 'OTA', tags: ['aseguramiento', 'no financiera'] },
+  { codigo: 'OTA_TADIFH', descripcion: 'Trabajos de Aseguramiento Distintos a los de Información Financiera Histórica', categoria: 'OTA', tags: ['aseguramiento', 'no financiera'] },
   { codigo: 'OTA_TEIRL', descripcion: 'Trabajos Como Expertos Independientes Requeridos Por Ley', categoria: 'OTA', tags: ['experto', 'independiente', 'ley'] },
   // CFIN - Corporate Finance
   { codigo: 'CFIN', descripcion: 'Corporate Finance', categoria: 'CFIN', tags: ['corporate finance', 'finanzas corporativas'] },
@@ -99,3 +101,30 @@ export const serviciosAX: ServicioAX[] = [
   { codigo: 'VAC', descripcion: 'Vacaciones', categoria: 'OTHER', tags: ['vacaciones'] },
   { codigo: 'BAJ', descripcion: 'Baja por enfermedad', categoria: 'OTHER', tags: ['baja', 'enfermedad'] },
 ];
+
+function loadCustomServicios(): ServicioAX[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomServicios(items: ServicioAX[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+export function getServiciosAX(): ServicioAX[] {
+  const custom = loadCustomServicios();
+  if (custom.length === 0) return defaultServiciosAX;
+  const merged = [...defaultServiciosAX];
+  for (const c of custom) {
+    const idx = merged.findIndex(m => m.codigo === c.codigo);
+    if (idx >= 0) merged[idx] = c;
+    else merged.push(c);
+  }
+  return merged;
+}
+
+export const serviciosAX: ServicioAX[] = defaultServiciosAX;

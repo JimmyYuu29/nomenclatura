@@ -1,9 +1,9 @@
 # PRD - Aplicación de Nomenclatura Unificada de Documentos
 ## Forvis Mazars - Sistema de Renombrado Automático de Archivos
 
-**Versión:** 1.0
-**Fecha:** 2026-03-09
-**Estado:** DRF
+**Versión:** 2.0
+**Fecha:** 2026-03-10
+**Estado:** DEF
 **Autor:** Equipo de Desarrollo
 
 ---
@@ -718,7 +718,7 @@ DRF ──▶ REV ──▶ OBS ──▶ REV (ciclo revisión)
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|-------------|---------|-----------|
 | Baja adopción | Media | Alto | Capacitación + integración Teams para facilitar uso |
-| Catálogos desactualizados | Alta | Medio | Proceso de actualización trimestral + notificaciones |
+| Catálogos desactualizados | Alta | Medio | Actualización directa por Excel desde la UI (V2.0) + proceso trimestral |
 | Licencia Copilot Studio no disponible | Media | Alto | Alternativa: Power Apps o webhook básico |
 | Resistencia al cambio | Media | Medio | Periodo de transición con ambos métodos permitidos |
 | Limitaciones de Power Automate | Baja | Medio | Diseño modular, migrable a Azure Functions |
@@ -749,3 +749,12 @@ DRF ──▶ REV ──▶ OBS ──▶ REV (ciclo revisión)
 ---
 
 *Documento generado conforme al procedimiento FORMAZ-PRO-01 v2.0 de Forvis Mazars.*
+
+---
+
+## Historial de Versiones
+
+| Versión | Fecha | Cambios |
+|---------|-------|---------|
+| 1.0 | 2026-03-09 | Versión inicial del PRD |
+| 2.0 | 2026-03-10 | Catálogos actualizados (revisión Belén V2). Actualización de catálogos por Excel con protección por contraseña. Selector de año/mes optimizado en campos de fecha. Selector de departamento (Auditoría / Otros). Pie de página corporativo IT Innovation. |

@@ -1,9 +1,9 @@
 # Guía de Integración: Chatbot de Nomenclatura en Microsoft Teams
 ## Forvis Mazars - Manual de Implementación
 
-**Versión:** 1.0
-**Fecha:** 2026-03-09
-**Estado:** DRF
+**Versión:** 2.0
+**Fecha:** 2026-03-10
+**Estado:** DEF
 
 ---
 
