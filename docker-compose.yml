@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: nomenclatura-app
     ports:
-      - "3080:80"
+      - "8003:80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]

@@ -29,7 +29,7 @@ docker compose up -d --build
 ```
 
 ### 访问地址
-- `http://localhost:3080`
+- `http://localhost:8003`
 
 ### 自定义端口
 编辑 `docker-compose.yml`，修改 `ports` 映射：

@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: nomenclatura-app
     ports:
-      - "3080:80"          # 宿主机 3080 → 容器 80
+      - "8003:80"          # 宿主机 8003 → 容器 80
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
@@ -90,7 +90,7 @@ services:
 
 ### 1.4 修改端口（可选）
 
-默认映射端口为 `3080`。如需修改，编辑 `docker-compose.yml` 中的 `ports`：
+默认映射端口为 `8003`。如需修改，编辑 `docker-compose.yml` 中的 `ports`：
 
 ```yaml
 ports:
@@ -115,14 +115,14 @@ docker compose up -d
 docker compose ps
 
 # 测试 HTTP 响应
-curl -I http://localhost:3080
+curl -I http://localhost:8003
 # 应返回 HTTP/1.1 200 OK
 ```
 
 在同一局域网内的浏览器中访问：
 
 ```
-http://<服务器内网 IP>:3080
+http://<服务器内网 IP>:8003
 ```
 
 ### 1.7 日常运维命令
@@ -155,7 +155,7 @@ server {
     ssl_certificate_key /etc/ssl/private/your-key.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:3080;
+        proxy_pass http://127.0.0.1:8003;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -449,10 +449,10 @@ serve --version
 # 使用 serve 托管 dist 目录
 # -s 启用 SPA 模式（所有路由回退到 index.html）
 # -l 指定监听端口
-serve -s dist -l 3080
+serve -s dist -l 8003
 ```
 
-在浏览器中访问 `http://<服务器 IP>:3080`，确认页面正常加载后按 `Ctrl+C` 停止。
+在浏览器中访问 `http://<服务器 IP>:8003`，确认页面正常加载后按 `Ctrl+C` 停止。
 
 ### 3.5 创建 Systemd 服务
 
@@ -474,7 +474,7 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/nomenclatura-app
-ExecStart=/usr/bin/serve -s dist -l 3080
+ExecStart=/usr/bin/serve -s dist -l 8003
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
@@ -489,7 +489,7 @@ ReadWritePaths=/opt/nomenclatura-app
 WantedBy=multi-user.target
 ```
 
-> **端口说明：** 上述配置使用 `3080` 端口。如需使用 `80` 端口，将 `-l 3080` 改为 `-l 80`，并将 `User` 改为 `root`（或使用 `setcap` 授权非 root 用户绑定低端口）。
+> **端口说明：** 上述配置使用 `8003` 端口。如需使用 `80` 端口，将 `-l 8003` 改为 `-l 80`，并将 `User` 改为 `root`（或使用 `setcap` 授权非 root 用户绑定低端口）。
 
 > **`serve` 路径说明：** `ExecStart` 中的 `/usr/bin/serve` 是全局安装后的默认路径。如果不确定，可运行 `which serve` 获取实际路径并替换。
 
@@ -523,14 +523,14 @@ sudo systemctl status nomenclatura-serve
 
 ```bash
 # 测试 HTTP 响应
-curl -I http://localhost:3080
+curl -I http://localhost:8003
 # 应返回 HTTP/1.1 200 OK
 ```
 
 在局域网浏览器中访问：
 
 ```
-http://<服务器内网 IP>:3080
+http://<服务器内网 IP>:8003
 ```
 
 ### 3.9 日常运维命令
@@ -600,7 +600,7 @@ sudo yum install -y nginx
 sudo nano /etc/nginx/sites-available/nomenclatura
 ```
 
-写入以下配置（将请求转发到 `serve` 监听的 3080 端口）：
+写入以下配置（将请求转发到 `serve` 监听的 8003 端口）：
 
 ```nginx
 server {
@@ -617,7 +617,7 @@ server {
                image/svg+xml;
 
     location / {
-        proxy_pass http://127.0.0.1:3080;
+        proxy_pass http://127.0.0.1:8003;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -663,7 +663,7 @@ server {
                image/svg+xml;
 
     location / {
-        proxy_pass http://127.0.0.1:3080;
+        proxy_pass http://127.0.0.1:8003;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -694,7 +694,7 @@ sudo nano /etc/systemd/system/nomenclatura-serve.service
 将 `ExecStart` 行改为仅监听 `127.0.0.1`：
 
 ```ini
-ExecStart=/usr/bin/serve -s dist -l tcp://127.0.0.1:3080
+ExecStart=/usr/bin/serve -s dist -l tcp://127.0.0.1:8003
 ```
 
 重新加载并重启：
@@ -704,7 +704,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart nomenclatura-serve
 ```
 
-此时外部用户只能通过 Nginx（80/443 端口）访问应用，3080 端口仅对本机可达。
+此时外部用户只能通过 Nginx（80/443 端口）访问应用，8003 端口仅对本机可达。
 
 > **切换完成！** 至此您已从「仅 Systemd」方案平滑升级为「Systemd + Nginx 反代」的完整生产架构，原有的 systemd 服务无需卸载重装。
 

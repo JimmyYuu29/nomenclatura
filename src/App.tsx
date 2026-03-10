@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import { useClientAlias } from '@/hooks/use-client-alias';
 
 import { buildFileName } from '@/lib/name-builder';
 import { renameFile } from '@/lib/file-rename';
+import { validateFields } from '@/lib/validation';
 import { addClientAlias } from '@/lib/storage';
 import type { NomenclaturaFields, HistoryEntry } from '@/types';
 import { createDefaultFields } from '@/types';
@@ -48,8 +49,6 @@ function App() {
     setField,
     setFields,
     resetFields,
-    validationErrors,
-    isValid,
   } = useNomenclaturaForm();
 
   const {
@@ -78,6 +77,13 @@ function App() {
     ? selectedFile.fields
     : fields;
 
+  // Compute validation from the actual fields being displayed/edited
+  const currentValidationErrors = useMemo(
+    () => validateFields(currentFields),
+    [currentFields]
+  );
+  const currentIsValid = currentValidationErrors.filter(e => e.severity === 'error').length === 0;
+
   // When a file is selected, field updates go to that file's fields;
   // otherwise they go to the global form fields.
   const handleSetField = useCallback(
@@ -101,7 +107,7 @@ function App() {
   }, [selectedFile, updateFileFields, resetFields]);
 
   const handleRename = useCallback(async () => {
-    if (!selectedFile || !isValid) return;
+    if (!selectedFile || !currentIsValid) return;
     setRenaming(true);
 
     try {
@@ -131,7 +137,7 @@ function App() {
     } finally {
       setRenaming(false);
     }
-  }, [selectedFile, isValid, currentFields, addEntry, saveAlias]);
+  }, [selectedFile, currentIsValid, currentFields, addEntry, saveAlias]);
 
   const handleReuse = useCallback(
     (entry: HistoryEntry) => {
@@ -240,15 +246,15 @@ function App() {
                     />
                     <Separator />
                     <ValidationStatus
-                      errors={validationErrors}
-                      isValid={isValid}
+                      errors={currentValidationErrors}
+                      isValid={currentIsValid}
                     />
                   </CardContent>
                 </Card>
 
                 <Button
                   onClick={handleRename}
-                  disabled={!isValid || !selectedFile || renaming}
+                  disabled={!currentIsValid || !selectedFile || renaming}
                   className="w-full"
                   size="lg"
                 >
