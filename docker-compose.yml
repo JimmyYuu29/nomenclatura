@@ -1,0 +1,15 @@
+services:
+  nomenclatura-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nomenclatura-app
+    ports:
+      - "3080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
