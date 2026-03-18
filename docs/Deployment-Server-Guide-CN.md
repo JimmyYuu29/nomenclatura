@@ -59,11 +59,12 @@ cd nomenclatura-app
 
 项目中已包含完整的 Docker 相关文件：
 
-**`Dockerfile`** — 两阶段构建：
+**`Dockerfile`** — 三阶段构建：
 
 ```
-阶段 1 (build)：使用 node:22-alpine 安装依赖并执行 npm run build
-阶段 2 (production)：使用 nginx:alpine 托管构建产物
+阶段 1 (frontend-build)：使用 node:22-alpine 安装依赖并执行 npm run build（前端）
+阶段 2 (backend-build)：使用 node:22-alpine 安装后端依赖并编译 TypeScript（Express API）
+阶段 3 (production)：使用 node:22-alpine + nginx，同时运行 Nginx（静态文件）和 Node.js（API 服务）
 ```
 
 **`docker-compose.yml`** — 编排配置：
@@ -77,6 +78,8 @@ services:
     container_name: nomenclatura-app
     ports:
       - "8003:80"          # 宿主机 8003 → 容器 80
+    volumes:
+      - /home/rootadmin/data/nomenclatura:/home/rootadmin/data/nomenclatura  # 数据库持久化
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
@@ -86,7 +89,22 @@ services:
       start_period: 10s
 ```
 
-**`nginx/nginx.conf`** — 容器内 Nginx 配置（已包含 gzip 压缩、静态资源长缓存、SPA 路由回退）。
+**`nginx/nginx.conf`** — 容器内 Nginx 配置（已包含 gzip 压缩、静态资源长缓存、SPA 路由回退、`/api/` 反向代理到 Node.js 后端）。
+
+**`start.sh`** — 容器入口脚本，先启动 Nginx（daemon 模式），再启动 Node.js API 服务器。
+
+### 1.3.1 数据库说明
+
+V2.1 新增了 SQLite 数据库用于文件完整性验证和版本建议：
+
+| 项目 | 说明 |
+|------|------|
+| 类型 | SQLite（通过 better-sqlite3） |
+| 路径 | `/home/rootadmin/data/nomenclatura/nomenclatura.db` |
+| 创建 | 应用启动时自动创建（如不存在） |
+| 持久化 | 通过 Docker volume 挂载，容器重建不丢失数据 |
+| 功能 | 记录文件 SHA-256 哈希值和命名，提供版本建议，检测内容变更 |
+| 环境变量 | `DB_PATH` 可覆盖默认数据库目录 |
 
 ### 1.4 修改端口（可选）
 
@@ -265,6 +283,14 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # API 反向代理到 Node.js 后端（V2.1 新增）
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
     # SPA 路由回退（已预配置）
     location / {
         try_files $uri $uri/ /index.html;
@@ -294,7 +320,48 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 2.5 配置 Systemd 服务（可选）
+### 2.5 部署后端 API 服务
+
+V2.1 新增了 Express.js 后端 API，需要单独部署和管理：
+
+```bash
+# 构建后端
+cd server
+npm ci
+npm run build
+
+# 复制后端文件到部署目录
+sudo mkdir -p /opt/nomenclatura-api
+sudo cp -r dist node_modules package.json /opt/nomenclatura-api/
+
+# 创建后端 systemd 服务
+sudo tee /etc/systemd/system/nomenclatura-api.service > /dev/null <<EOF
+[Unit]
+Description=Nomenclatura API Server
+After=network.target
+
+[Service]
+Type=simple
+User=rootadmin
+WorkingDirectory=/opt/nomenclatura-api
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3001
+Environment=DB_PATH=/home/rootadmin/data/nomenclatura
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable nomenclatura-api
+sudo systemctl start nomenclatura-api
+```
+
+> **重要：** Nginx 配置中需添加 API 反向代理块（参见 2.4 节配置中的 `/api/` location）。
+
+### 2.6 配置 Systemd 服务管理 Nginx（可选）
 
 项目提供了 systemd 服务文件 `nomenclatura-app.service`，可用来通过 systemctl 统一管理 Nginx 进程：
 
@@ -714,11 +781,13 @@ sudo systemctl restart nomenclatura-serve
 
 | 文件 | 用途 |
 |------|------|
-| `Dockerfile` | 多阶段构建（Node.js 构建 + Nginx 静态托管） |
-| `docker-compose.yml` | Docker 编排配置，定义端口映射与健康检查 |
+| `Dockerfile` | 三阶段构建（前端构建 + 后端构建 + Node.js+Nginx 生产镜像） |
+| `docker-compose.yml` | Docker 编排配置，定义端口映射、健康检查和数据库 volume 挂载 |
+| `start.sh` | Docker 容器入口脚本（启动 Nginx + Node.js） |
 | `.dockerignore` | Docker 构建时排除的文件列表 |
-| `nginx/nginx.conf` | Docker 容器内使用的 Nginx 配置 |
+| `nginx/nginx.conf` | Docker 容器内使用的 Nginx 配置（含 `/api/` 反向代理） |
 | `nginx/nomenclatura.conf` | 方案二使用的独立 Nginx 站点配置模板 |
 | `nomenclatura-app.service` | 方案二的 systemd 服务单元文件（管理 Nginx） |
+| `server/` | Express.js 后端 API 目录（SQLite 数据库管理、文件记录存储与验证） |
 | `deploy.sh` | 方案二的自动化部署脚本 |
 | `serve`（全局 npm 包） | 方案三使用的零配置 SPA 静态文件服务器 |

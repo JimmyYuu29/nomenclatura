@@ -6,6 +6,8 @@ import { createDefaultFields } from '@/types';
 import { extractExtension } from '@/lib/file-utils';
 import { detectVersion } from '@/lib/version-detector';
 import { parseNomenclaturaName } from '@/lib/name-parser';
+import { computeFileHash } from '@/lib/file-hash';
+import { verifyHash } from '@/lib/api-client';
 
 interface UseFileDropReturn {
   files: FileEntry[];
@@ -43,13 +45,43 @@ export function useFileDrop(): UseFileDropReturn {
       generatedName: '',
       isValid: false,
       validationErrors: [],
+      integrityWarning: null,
     };
+  }, []);
+
+  const checkIntegrity = useCallback(async (entries: FileEntry[]) => {
+    for (const entry of entries) {
+      const parsed = parseNomenclaturaName(entry.originalName);
+      if (!parsed) continue;
+
+      try {
+        const hash = await computeFileHash(entry.file);
+        const result = await verifyHash(hash, entry.originalName);
+
+        if (result && result.found && !result.hashMatch) {
+          setFiles(prev =>
+            prev.map(f =>
+              f.id === entry.id
+                ? {
+                    ...f,
+                    integrityWarning:
+                      'El contenido de este archivo no coincide con el registrado en la base de datos. Considere cambiar el nombre o incrementar la versión.',
+                  }
+                : f
+            )
+          );
+        }
+      } catch {
+        // Silently ignore — DB may be unavailable
+      }
+    }
   }, []);
 
   const addFiles = useCallback((newFiles: File[]) => {
     const entries = newFiles.map(processFile);
     setFiles(prev => [...prev, ...entries]);
-  }, [processFile]);
+    checkIntegrity(entries);
+  }, [processFile, checkIntegrity]);
 
   const removeFile = useCallback((id: string) => {
     setFiles(prev => prev.filter(f => f.id !== id));

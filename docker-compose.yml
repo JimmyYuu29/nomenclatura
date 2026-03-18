@@ -6,6 +6,8 @@ services:
     container_name: nomenclatura-app
     ports:
       - "8003:80"
+    volumes:
+      - /home/rootadmin/data/nomenclatura:/home/rootadmin/data/nomenclatura
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]

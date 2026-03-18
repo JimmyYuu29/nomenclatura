@@ -26,13 +26,18 @@ import { useFileDrop } from '@/hooks/use-file-drop';
 import { useNomenclaturaForm } from '@/hooks/use-nomenclatura-form';
 import { useHistory } from '@/hooks/use-history';
 import { useClientAlias } from '@/hooks/use-client-alias';
+import { useVersionSuggestion } from '@/hooks/use-version-suggestion';
 
 import { buildFileName } from '@/lib/name-builder';
 import { renameFile } from '@/lib/file-rename';
 import { validateFields } from '@/lib/validation';
 import { addClientAlias } from '@/lib/storage';
+import { computeFileHash } from '@/lib/file-hash';
+import { storeRecord } from '@/lib/api-client';
+import { formatDateYYYYMMDD } from '@/lib/date-formatter';
 import type { NomenclaturaFields, HistoryEntry } from '@/types';
 import { createDefaultFields } from '@/types';
+import { DatabaseIndicator } from '@/components/layout/DatabaseIndicator';
 
 function App() {
   const {
@@ -79,6 +84,9 @@ function App() {
   const currentFields = selectedFile
     ? selectedFile.fields
     : fields;
+
+  // Version suggestion from database
+  const { suggestedVersion, matchingRecords } = useVersionSuggestion(currentFields);
 
   // Compute validation from the actual fields being displayed/edited
   const currentValidationErrors = useMemo(
@@ -131,6 +139,24 @@ function App() {
         // Save alias for autocomplete
         saveAlias(currentFields.aliasCliente);
 
+        // Store hash + record in database (fire-and-forget)
+        computeFileHash(selectedFile.file).then(hash => {
+          storeRecord({
+            hash,
+            filename: newName,
+            fields: {
+              aliasCliente: currentFields.aliasCliente,
+              servicioAX: currentFields.servicioAX,
+              periodoServicio: formatDateYYYYMMDD(currentFields.periodoServicio),
+              acronimoDocumento: currentFields.acronimoDocumento,
+              acronimoSufijo: currentFields.acronimoSufijo,
+              fechaDocumento: formatDateYYYYMMDD(currentFields.fechaDocumento),
+              version: currentFields.version,
+              estadoDocumento: currentFields.estadoDocumento,
+            },
+          });
+        }).catch(() => {});
+
         toast.success(result.message);
       } else {
         toast.error(result.message);
@@ -157,7 +183,7 @@ function App() {
   );
 
   const handleBatchRenameComplete = useCallback(
-    (originalName: string, newName: string, batchFields: NomenclaturaFields) => {
+    (originalName: string, newName: string, batchFields: NomenclaturaFields, file: File) => {
       addEntry({
         originalName,
         newName,
@@ -167,6 +193,24 @@ function App() {
         estadoDocumento: batchFields.estadoDocumento,
       });
       addClientAlias(batchFields.aliasCliente);
+
+      // Store hash + record in database (fire-and-forget)
+      computeFileHash(file).then(hash => {
+        storeRecord({
+          hash,
+          filename: newName,
+          fields: {
+            aliasCliente: batchFields.aliasCliente,
+            servicioAX: batchFields.servicioAX,
+            periodoServicio: formatDateYYYYMMDD(batchFields.periodoServicio),
+            acronimoDocumento: batchFields.acronimoDocumento,
+            acronimoSufijo: batchFields.acronimoSufijo,
+            fechaDocumento: formatDateYYYYMMDD(batchFields.fechaDocumento),
+            version: batchFields.version,
+            estadoDocumento: batchFields.estadoDocumento,
+          },
+        });
+      }).catch(() => {});
     },
     [addEntry]
   );
@@ -252,6 +296,8 @@ function App() {
                       setField={handleSetField}
                       clientSuggestions={clientSuggestions}
                       detectedVersion={selectedFile?.detectedVersion}
+                      suggestedVersion={suggestedVersion}
+                      matchingRecords={matchingRecords}
                     />
                   </CardContent>
                 </Card>
@@ -386,6 +432,7 @@ function App() {
       {/* Footer */}
       <footer className="border-t bg-card mt-8">
         <div className="mx-auto max-w-5xl px-4 py-3 text-center">
+          <DatabaseIndicator />
           <p className="text-xs text-muted-foreground">
             Desarrollado por IT Innovation V2.0 · Carrer de la Diputació, 260, Eixample, 08007 Barcelona
           </p>

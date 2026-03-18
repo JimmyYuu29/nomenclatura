@@ -19,6 +19,7 @@ export interface FileEntry {
   generatedName: string;
   isValid: boolean;
   validationErrors: ValidationError[];
+  integrityWarning?: string | null;
 }
 
 export interface ValidationError {

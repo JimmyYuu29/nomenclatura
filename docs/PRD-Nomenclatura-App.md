@@ -1,8 +1,8 @@
 # PRD - Aplicación de Nomenclatura Unificada de Documentos
 ## Forvis Mazars - Sistema de Renombrado Automático de Archivos
 
-**Versión:** 2.0
-**Fecha:** 2026-03-10
+**Versión:** 2.1
+**Fecha:** 2026-03-18
 **Estado:** DEF
 **Autor:** Equipo de Desarrollo
 
@@ -331,7 +331,26 @@ Adicionalmente, el sistema se integrará con **Microsoft Teams** mediante un cha
 7. Solo se permiten acrónimos y servicios del catálogo oficial
 8. El alias de cliente no puede contener caracteres especiales
 
-### 6.12 RF-12: Historial y Favoritos
+### 6.12 RF-12: Base de Datos de Verificación e Integridad
+
+**Descripción:** Sistema de base de datos SQLite en el servidor que registra cada archivo renombrado y permite verificación de integridad y sugerencia de versiones.
+
+**Criterios de Aceptación:**
+- Al renombrar un archivo exitosamente, se calcula su hash SHA-256 (cliente) y se almacena en la base de datos junto con el nombre generado y los campos de nomenclatura
+- Cuando un archivo nuevo coincide con registros existentes en alias, servicio, periodo y acrónimo (excluyendo fecha, versión y estado), el sistema sugiere automáticamente la siguiente versión disponible
+- La sugerencia de versión muestra los archivos relacionados como referencia, pero el usuario puede elegir cualquier versión manualmente
+- Al subir un archivo que ya sigue la nomenclatura, el sistema calcula su hash y lo compara con el registro en la base de datos; si el contenido ha cambiado, muestra una alerta recomendando cambiar el nombre o incrementar la versión
+- La base de datos se almacena en `/home/rootadmin/data/nomenclatura/nomenclatura.db` y se crea automáticamente al iniciar la aplicación
+- El pie de página muestra un indicador de conexión a la base de datos (verde = conectada, rojo = no disponible)
+- Todas las funciones de base de datos son opcionales — la aplicación funciona normalmente sin el backend API
+
+**Componentes técnicos:**
+- Backend: Express.js con better-sqlite3 en puerto 3001
+- Hash: Web Crypto API (SHA-256) calculado en el navegador
+- Proxy: Nginx reenvía `/api/*` al backend Node.js
+- Endpoints: `/api/health`, `/api/records`, `/api/records/match`, `/api/records/verify`
+
+### 6.13 RF-13: Historial y Favoritos
 
 **Descripción:** Almacenamiento local de configuraciones frecuentes.
 
@@ -352,8 +371,8 @@ Adicionalmente, el sistema se integrará con **Microsoft Teams** mediante un cha
 | RNF-03 | Responsividad | Funcional en pantallas >= 1024px |
 | RNF-04 | Accesibilidad | WCAG 2.1 nivel AA |
 | RNF-05 | Idioma | Interfaz en español (con soporte futuro para inglés) |
-| RNF-06 | Almacenamiento | Datos de catálogo embebidos en la app (sin backend requerido para MVP) |
-| RNF-07 | Seguridad | No se transmiten archivos a ningún servidor; renombrado local |
+| RNF-06 | Almacenamiento | Catálogos embebidos en la app; base de datos SQLite en servidor para verificación de integridad |
+| RNF-07 | Seguridad | Los archivos no se transmiten al servidor; solo se envían hashes SHA-256 y metadatos de nomenclatura |
 | RNF-08 | Disponibilidad | 99.5% uptime para el chatbot de Teams |
 
 ---
@@ -403,12 +422,14 @@ Adicionalmente, el sistema se integrará con **Microsoft Teams** mediante un cha
 
 | Componente | Tecnología | Justificación |
 |------------|-----------|---------------|
-| Frontend | React 18 + TypeScript | Ecosistema maduro, componentes reutilizables |
-| UI Framework | Tailwind CSS + shadcn/ui | Diseño moderno, accesible, personalizable |
+| Frontend | React 19 + TypeScript 5.9 | Ecosistema maduro, componentes reutilizables |
+| UI Framework | Tailwind CSS 4 + shadcn/ui | Diseño moderno, accesible, personalizable |
 | Drag & Drop | react-dropzone | Librería estándar, bien mantenida |
 | Búsqueda | Fuse.js | Fuzzy search en cliente, sin backend |
-| Build | Vite | Rápido, moderno |
-| Hosting | Azure Static Web Apps / SharePoint | Integración con ecosistema Microsoft |
+| Build | Vite 7 | Rápido, moderno |
+| Backend API | Express 5 + better-sqlite3 | API ligera para verificación de integridad |
+| Hash | Web Crypto API (SHA-256) | Cálculo de hash en navegador, sin transmitir archivos |
+| Hosting | Docker (Node.js + Nginx) / Systemd | Contenedor dual o despliegue nativo |
 
 ### 8.3 Stack Tecnológico - Chatbot Teams
 
@@ -758,3 +779,4 @@ DRF ──▶ REV ──▶ OBS ──▶ REV (ciclo revisión)
 |---------|-------|---------|
 | 1.0 | 2026-03-09 | Versión inicial del PRD |
 | 2.0 | 2026-03-10 | Catálogos actualizados (revisión Belén V2). Actualización de catálogos por Excel con protección por contraseña. Selector de año/mes optimizado en campos de fecha. Selector de departamento (Auditoría / Otros). Pie de página corporativo IT Innovation. |
+| 2.1 | 2026-03-18 | Base de datos SQLite para verificación de integridad (hash SHA-256). Sugerencia automática de versión basada en registros existentes. Alerta de integridad al detectar contenido modificado. Indicador de conexión a base de datos en el pie de página. Backend Express.js con API REST. Arquitectura Docker actualizada a Node.js + Nginx. |

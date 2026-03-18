@@ -17,4 +17,11 @@ export const categorias: CategoriaInfo[] = [
   { codigo: 'INTERNAL', nombre: 'Interno' },
   { codigo: 'ACT', nombre: 'Actuarial' },
   { codigo: 'OTHER', nombre: 'Otros' },
+  { codigo: 'BC', nombre: 'Business Consulting' },
+  { codigo: 'RF', nombre: 'Riesgos Financieros' },
+  { codigo: 'AUP', nombre: 'Procedimientos Acordados' },
+  { codigo: 'ASS', nombre: 'Aseguramiento' },
+  { codigo: 'NAS', nombre: 'Servicios No Aseguramiento' },
+  { codigo: 'EXP', nombre: 'Experto Independiente' },
+  { codigo: 'CIG', nombre: 'Colaboración con Auditores' },
 ];

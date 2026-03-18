@@ -15,7 +15,7 @@ interface BatchRenamePanelProps {
   files: FileEntry[];
   onUpdateFields: (id: string, fields: Partial<NomenclaturaFields>) => void;
   clientSuggestions: string[];
-  onRenameComplete: (originalName: string, newName: string, fields: NomenclaturaFields) => void;
+  onRenameComplete: (originalName: string, newName: string, fields: NomenclaturaFields, file: File) => void;
 }
 
 export function BatchRenamePanel({
@@ -60,7 +60,7 @@ export function BatchRenamePanel({
           [file.id]: result.success ? 'success' : 'error',
         }));
         if (result.success) {
-          onRenameComplete(file.originalName, newName, file.fields);
+          onRenameComplete(file.originalName, newName, file.fields, file.file);
         }
       }
       setProgress(((i + 1) / files.length) * 100);

@@ -1,7 +1,8 @@
 export type CategoriaServicio =
   | 'SUS' | 'AUD' | 'IES' | 'ECO' | 'GRC' | 'SUB'
   | 'COM' | 'IT' | 'OTA' | 'CFIN' | 'ACC' | 'TAX' | 'LEGAL'
-  | 'INTERNAL' | 'ACT' | 'OTHER';
+  | 'INTERNAL' | 'ACT' | 'OTHER'
+  | 'BC' | 'RF' | 'AUP' | 'ASS' | 'NAS' | 'EXP' | 'CIG';
 
 export interface ServicioAX {
   codigo: string;

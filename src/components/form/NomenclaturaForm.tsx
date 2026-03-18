@@ -1,4 +1,5 @@
 import type { NomenclaturaFields } from '@/types';
+import type { MatchRecord } from '@/lib/api-client';
 import { AliasClienteField } from './AliasClienteField';
 import { ServicioAXField } from './ServicioAXField';
 import { PeriodoServicioField } from './PeriodoServicioField';
@@ -12,6 +13,8 @@ interface NomenclaturaFormProps {
   setField: <K extends keyof NomenclaturaFields>(key: K, value: NomenclaturaFields[K]) => void;
   clientSuggestions: string[];
   detectedVersion?: number | null;
+  suggestedVersion?: number | null;
+  matchingRecords?: MatchRecord[];
   disabled?: boolean;
 }
 
@@ -20,6 +23,8 @@ export function NomenclaturaForm({
   setField,
   clientSuggestions,
   detectedVersion,
+  suggestedVersion,
+  matchingRecords,
   disabled = false,
 }: NomenclaturaFormProps) {
   return (
@@ -56,6 +61,8 @@ export function NomenclaturaForm({
         value={fields.version}
         onChange={v => setField('version', v)}
         detectedVersion={detectedVersion}
+        suggestedVersion={suggestedVersion}
+        matchingRecords={matchingRecords}
         disabled={disabled}
       />
       <EstadoDocumentoField
