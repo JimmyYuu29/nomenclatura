@@ -152,6 +152,102 @@ chmod +x deploy.sh
 
 ---
 
+## 方案 C：仅 Systemd 部署（不使用 Nginx）
+
+> 最轻量方案，仅需 Node.js。使用 `serve` 托管前端静态文件，后端 API 作为独立 Node.js 进程运行。
+> 数据库功能需额外添加 Nginx 反向代理（参见详细指南 `docs/Deployment-Server-Guide-CN.md` 3.12 节）。
+
+### 前置条件
+- Node.js 22+
+- Linux 服务器
+
+### 部署步骤
+
+#### 1. 构建前端
+```bash
+cd nomenclatura-app
+npm ci
+npm run build
+```
+
+#### 2. 构建后端
+```bash
+cd server
+npm ci
+npm run build
+```
+
+#### 3. 安装 serve 并部署前端
+```bash
+sudo npm install -g serve
+```
+
+#### 4. 部署后端 API
+```bash
+sudo mkdir -p /opt/nomenclatura-api
+sudo cp -r server/dist server/node_modules server/package.json /opt/nomenclatura-api/
+```
+
+#### 5. 创建前端 systemd 服务
+```bash
+sudo tee /etc/systemd/system/nomenclatura.service > /dev/null <<EOF
+[Unit]
+Description=Nomenclatura App (serve static files)
+After=network.target
+
+[Service]
+Type=simple
+User=rootadmin
+WorkingDirectory=/opt/nomenclatura-app
+ExecStart=/usr/local/bin/serve -s dist -l 8003
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+#### 6. 创建后端 systemd 服务
+```bash
+sudo tee /etc/systemd/system/nomenclatura-api.service > /dev/null <<EOF
+[Unit]
+Description=Nomenclatura API Server
+After=network.target
+
+[Service]
+Type=simple
+User=rootadmin
+WorkingDirectory=/opt/nomenclatura-api
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3001
+Environment=DB_PATH=/home/rootadmin/data/nomenclatura
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+#### 7. 启动服务
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable nomenclatura nomenclatura-api
+sudo systemctl start nomenclatura nomenclatura-api
+```
+
+### 访问地址
+- `http://localhost:8003`
+
+### 数据库功能说明
+
+> **注意：** `serve` 无法代理 `/api/` 请求到后端。在此方案下，数据库功能（文件哈希验证、版本建议、完整性检查）需要添加 Nginx 反向代理才能工作。详见 `docs/Deployment-Server-Guide-CN.md` 3.12 节。
+> 不添加 Nginx 时，应用自动降级为纯前端模式，核心文件重命名功能不受影响。
+
+---
+
 ## 文件说明
 
 | 文件 | 用途 |

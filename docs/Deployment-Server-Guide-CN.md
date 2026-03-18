@@ -451,9 +451,11 @@ http://nomenclatura.yourcompany.com
 
 ## 方案三：仅 Systemd 部署（不使用 Nginx）
 
-> 最轻量的部署方式。服务器上仅需 Node.js，使用 `serve`（一个零配置的静态文件服务器）直接托管构建产物，并通过 systemd 管理进程生命周期。
+> 最轻量的部署方式。服务器上仅需 Node.js，使用 `serve`（一个零配置的静态文件服务器）直接托管前端构建产物，后端 API 作为独立 Node.js 进程运行，通过 systemd 管理两个进程的生命周期。
 >
 > **适用场景：** 服务器未安装且不方便安装 Nginx；仅需快速上线内部工具；用户量较少（< 100 并发）。
+>
+> **注意：** `serve` 无法代理 `/api/` 请求到后端。在此方案下，数据库功能（文件哈希验证、版本建议、完整性检查）需要添加 Nginx 反向代理（参见 3.12 节）才能正常工作。如果暂时不需要数据库功能，应用会优雅降级，核心的文件重命名功能不受影响。
 
 ### 3.1 前置条件
 
@@ -496,7 +498,60 @@ npm run build
 
 构建完成后生成 `dist/` 目录。
 
-### 3.3 安装 `serve` 静态文件服务器
+### 3.3 构建并部署后端 API
+
+V2.1 新增了 Express.js 后端 API，提供数据库验证功能。
+
+```bash
+# 构建后端
+cd server
+npm ci
+npm run build
+
+# 创建后端部署目录
+sudo mkdir -p /opt/nomenclatura-api
+
+# 复制后端文件
+sudo cp -r dist node_modules package.json /opt/nomenclatura-api/
+```
+
+创建后端 API 的 systemd 服务：
+
+```bash
+sudo tee /etc/systemd/system/nomenclatura-api.service > /dev/null <<EOF
+[Unit]
+Description=Nomenclatura API Server
+After=network.target
+
+[Service]
+Type=simple
+User=rootadmin
+WorkingDirectory=/opt/nomenclatura-api
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3001
+Environment=DB_PATH=/home/rootadmin/data/nomenclatura
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable nomenclatura-api
+sudo systemctl start nomenclatura-api
+```
+
+验证后端是否运行：
+
+```bash
+curl http://localhost:3001/api/health
+# 应返回 {"status":"ok","db":true}
+```
+
+> **重要：** 后端 API 运行在端口 3001，但前端通过相对路径 `/api/` 发起请求。由于 `serve` 不支持反向代理，前端无法直接将 `/api/` 请求转发到后端。要启用数据库功能，需要在 `serve` 前方添加 Nginx 反向代理（参见 3.12 节）。如果暂不需要数据库功能，可跳过此步骤——应用会自动降级为纯前端模式。
+
+### 3.4 安装 `serve` 静态文件服务器
 
 [serve](https://github.com/vercel/serve) 是由 Vercel 维护的零配置静态文件服务工具，专为 SPA 设计，原生支持路由回退。
 
@@ -508,7 +563,7 @@ sudo npm install -g serve
 serve --version
 ```
 
-### 3.4 手动测试运行
+### 3.5 手动测试运行
 
 在正式配置 systemd 之前，先手动启动确认能正常访问：
 
@@ -521,7 +576,7 @@ serve -s dist -l 8003
 
 在浏览器中访问 `http://<服务器 IP>:8003`，确认页面正常加载后按 `Ctrl+C` 停止。
 
-### 3.5 创建 Systemd 服务
+### 3.6 创建前端 Systemd 服务
 
 创建一个专用的 systemd service 文件，让 `serve` 在后台持续运行并开机自启。
 
@@ -560,7 +615,7 @@ WantedBy=multi-user.target
 
 > **`serve` 路径说明：** `ExecStart` 中的 `/usr/bin/serve` 是全局安装后的默认路径。如果不确定，可运行 `which serve` 获取实际路径并替换。
 
-### 3.6 设置文件权限
+### 3.7 设置文件权限
 
 ```bash
 # 确保 www-data 用户能读取项目目录
@@ -568,7 +623,7 @@ sudo chown -R www-data:www-data /opt/nomenclatura-app
 sudo chmod -R 755 /opt/nomenclatura-app
 ```
 
-### 3.7 启动并启用服务
+### 3.8 启动并启用服务
 
 ```bash
 # 重新加载 systemd 配置
@@ -586,7 +641,7 @@ sudo systemctl status nomenclatura
 
 期望输出中包含 `Active: active (running)`。
 
-### 3.8 验证部署
+### 3.9 验证部署
 
 ```bash
 # 测试 HTTP 响应
@@ -600,26 +655,32 @@ curl -I http://localhost:8003
 http://<服务器内网 IP>:8003
 ```
 
-### 3.9 日常运维命令
+### 3.10 日常运维命令
 
 ```bash
-# 查看服务状态
-sudo systemctl status nomenclatura-serve
+# 查看前端服务状态
+sudo systemctl status nomenclatura
 
-# 查看实时日志
-sudo journalctl -u nomenclatura-serve -f
+# 查看后端 API 服务状态
+sudo systemctl status nomenclatura-api
 
-# 查看最近 50 行日志
-sudo journalctl -u nomenclatura-serve -n 50
+# 查看前端实时日志
+sudo journalctl -u nomenclatura -f
 
-# 重启服务
-sudo systemctl restart nomenclatura-serve
+# 查看后端 API 实时日志
+sudo journalctl -u nomenclatura-api -f
 
-# 停止服务
-sudo systemctl stop nomenclatura-serve
+# 重启前端服务
+sudo systemctl restart nomenclatura
+
+# 重启后端 API 服务
+sudo systemctl restart nomenclatura-api
+
+# 停止所有服务
+sudo systemctl stop nomenclatura nomenclatura-api
 ```
 
-### 3.10 代码更新流程
+### 3.11 代码更新流程
 
 当应用代码有更新时，执行以下步骤：
 
@@ -629,27 +690,36 @@ cd /opt/nomenclatura-app
 # 拉取最新代码（如使用 Git）
 git pull
 
-# 重新安装依赖并构建
+# 重新构建前端
 npm ci
 npm run build
 
-# 重启服务使新构建生效
-sudo systemctl restart nomenclatura-serve
+# 重新构建后端
+cd server
+npm ci
+npm run build
+sudo cp -r dist node_modules package.json /opt/nomenclatura-api/
+
+# 重启所有服务
+sudo systemctl restart nomenclatura nomenclatura-api
 ```
 
 ---
 
-### 3.11 后续添加 Nginx 反向代理
+### 3.12 后续添加 Nginx 反向代理
 
 当您的应用规模扩大或需要以下功能时，建议在 `serve` 前方加入 Nginx 反向代理层：
 
 | 需求 | 说明 |
 |------|------|
+| **数据库功能** | **必需** — 文件哈希验证、版本建议、完整性检查均需通过 Nginx 将 `/api/` 请求代理到后端 |
 | **HTTPS / SSL** | Teams 集成必需，也是生产环境安全最佳实践 |
 | **gzip / Brotli 压缩** | 减小传输体积，加速页面加载 |
 | **静态资源缓存** | 利用 Nginx 的高效缓存策略降低服务器负载 |
 | **访问控制** | IP 白名单、Rate Limiting 等安全防护 |
 | **多应用复用端口** | 通过虚拟主机让多个应用共享 80/443 端口 |
+
+> **重要：** 如果您在 3.3 节部署了后端 API，则**必须**添加 Nginx 反向代理才能使数据库功能正常工作。`serve` 不支持代理 `/api/` 请求，Nginx 负责将 `/api/` 路由转发到后端 Node.js 服务（端口 3001）。
 
 #### 步骤 1 — 安装 Nginx
 
@@ -667,7 +737,7 @@ sudo yum install -y nginx
 sudo nano /etc/nginx/sites-available/nomenclatura
 ```
 
-写入以下配置（将请求转发到 `serve` 监听的 8003 端口）：
+写入以下配置（将前端请求转发到 `serve`，API 请求转发到后端）：
 
 ```nginx
 server {
@@ -683,6 +753,15 @@ server {
                text/xml application/xml application/xml+rss text/javascript
                image/svg+xml;
 
+    # API 反向代理到后端 Node.js（V2.1 数据库功能）
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # 前端静态文件代理到 serve
     location / {
         proxy_pass http://127.0.0.1:8003;
         proxy_set_header Host $host;
@@ -729,6 +808,15 @@ server {
                text/xml application/xml application/xml+rss text/javascript
                image/svg+xml;
 
+    # API 反向代理到后端 Node.js
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # 前端静态文件代理到 serve
     location / {
         proxy_pass http://127.0.0.1:8003;
         proxy_set_header Host $host;
