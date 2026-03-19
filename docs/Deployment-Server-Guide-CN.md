@@ -509,16 +509,16 @@ npm ci
 npm run build
 
 # 创建后端部署目录
-sudo mkdir -p /opt/nomenclatura-api
+sudo mkdir -p /home/rootadmin/portal-suite/nomenclatura_api
 
 # 复制后端文件
-sudo cp -r dist node_modules package.json /opt/nomenclatura-api/
+sudo cp -r dist node_modules package.json /home/rootadmin/portal-suite/nomenclatura_api/
 ```
 
 创建后端 API 的 systemd 服务：
 
 ```bash
-sudo tee /etc/systemd/system/nomenclatura-api.service > /dev/null <<EOF
+sudo tee /etc/systemd/system/nomenclatura_api.service > /dev/null <<EOF
 [Unit]
 Description=Nomenclatura API Server
 After=network.target
@@ -526,7 +526,7 @@ After=network.target
 [Service]
 Type=simple
 User=rootadmin
-WorkingDirectory=/opt/nomenclatura-api
+WorkingDirectory=/home/rootadmin/portal-suite/nomenclatura-api
 ExecStart=/usr/bin/node dist/index.js
 Restart=on-failure
 RestartSec=5
@@ -538,8 +538,8 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable nomenclatura-api
-sudo systemctl start nomenclatura-api
+sudo systemctl enable nomenclatura_api
+sudo systemctl start nomenclatura_api
 ```
 
 验证后端是否运行：
@@ -619,8 +619,8 @@ WantedBy=multi-user.target
 
 ```bash
 # 确保 www-data 用户能读取项目目录
-sudo chown -R www-data:www-data /opt/nomenclatura-app
-sudo chmod -R 755 /opt/nomenclatura-app
+sudo chown -R www-data:www-data /home/rootadmin/portal-suite/nomenclatura
+sudo chmod -R 755 /home/rootadmin/portal-suite/nomenclatura
 ```
 
 ### 3.8 启动并启用服务
@@ -662,7 +662,7 @@ http://<服务器内网 IP>:8003
 sudo systemctl status nomenclatura
 
 # 查看后端 API 服务状态
-sudo systemctl status nomenclatura-api
+sudo systemctl status nomenclatura_api
 
 # 查看前端实时日志
 sudo journalctl -u nomenclatura -f
@@ -677,7 +677,7 @@ sudo systemctl restart nomenclatura
 sudo systemctl restart nomenclatura-api
 
 # 停止所有服务
-sudo systemctl stop nomenclatura nomenclatura-api
+sudo systemctl stop nomenclatura nomenclatura_api
 ```
 
 ### 3.11 代码更新流程
@@ -685,7 +685,7 @@ sudo systemctl stop nomenclatura nomenclatura-api
 当应用代码有更新时，执行以下步骤：
 
 ```bash
-cd /opt/nomenclatura-app
+cd /home/rootadmin/portal-suite/nomenclatura
 
 # 拉取最新代码（如使用 Git）
 git pull
@@ -698,10 +698,10 @@ npm run build
 cd server
 npm ci
 npm run build
-sudo cp -r dist node_modules package.json /opt/nomenclatura-api/
+sudo cp -r dist node_modules package.json /home/rootadmin/portal-suite/nomenclatura_api/
 
 # 重启所有服务
-sudo systemctl restart nomenclatura nomenclatura-api
+sudo systemctl restart nomenclatura nomenclaturaapi
 ```
 
 ---

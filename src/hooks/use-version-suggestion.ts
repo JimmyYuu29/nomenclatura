@@ -13,7 +13,7 @@ export function useVersionSuggestion(fields: NomenclaturaFields): VersionSuggest
     suggestedVersion: null,
     matchingRecords: [],
   });
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const alias = fields.aliasCliente;
   const servicio = fields.servicioAX;
