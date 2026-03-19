@@ -3,15 +3,29 @@ import { findMatches, type MatchRecord } from '@/lib/api-client';
 import { formatDateYYYYMMDD } from '@/lib/date-formatter';
 import type { NomenclaturaFields } from '@/types';
 
+export interface HashComparison {
+  /** The file's hash matches an existing record in DB */
+  hashMatched: boolean;
+  /** The version of the matching record (if hash matched) */
+  matchedVersion: number | null;
+  /** The estado of the matching record (if hash matched) */
+  matchedEstado: string | null;
+}
+
 interface VersionSuggestion {
   suggestedVersion: number | null;
   matchingRecords: MatchRecord[];
+  hashComparison: HashComparison | null;
 }
 
-export function useVersionSuggestion(fields: NomenclaturaFields): VersionSuggestion {
+export function useVersionSuggestion(
+  fields: NomenclaturaFields,
+  fileHash?: string | null
+): VersionSuggestion {
   const [suggestion, setSuggestion] = useState<VersionSuggestion>({
     suggestedVersion: null,
     matchingRecords: [],
+    hashComparison: null,
   });
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -25,7 +39,7 @@ export function useVersionSuggestion(fields: NomenclaturaFields): VersionSuggest
     if (timerRef.current) clearTimeout(timerRef.current);
 
     if (!alias || !servicio || !periodo || !acronimo) {
-      setSuggestion({ suggestedVersion: null, matchingRecords: [] });
+      setSuggestion({ suggestedVersion: null, matchingRecords: [], hashComparison: null });
       return;
     }
 
@@ -40,19 +54,42 @@ export function useVersionSuggestion(fields: NomenclaturaFields): VersionSuggest
 
       if (matches.length > 0) {
         const maxVersion = Math.max(...matches.map(m => m.version));
+
+        // Compare file hash with matching records
+        let hashComparison: HashComparison | null = null;
+        if (fileHash) {
+          const hashMatch = matches.find(m => m.hash === fileHash);
+          if (hashMatch) {
+            hashComparison = {
+              hashMatched: true,
+              matchedVersion: hashMatch.version,
+              matchedEstado: hashMatch.estado_documento,
+            };
+          } else {
+            hashComparison = {
+              hashMatched: false,
+              matchedVersion: null,
+              matchedEstado: null,
+            };
+          }
+        }
+
         setSuggestion({
-          suggestedVersion: maxVersion + 1,
+          suggestedVersion: hashComparison?.hashMatched
+            ? hashComparison.matchedVersion
+            : maxVersion + 1,
           matchingRecords: matches,
+          hashComparison,
         });
       } else {
-        setSuggestion({ suggestedVersion: null, matchingRecords: [] });
+        setSuggestion({ suggestedVersion: null, matchingRecords: [], hashComparison: null });
       }
     }, 500);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [alias, servicio, periodo, acronimo, sufijo]);
+  }, [alias, servicio, periodo, acronimo, sufijo, fileHash]);
 
   return suggestion;
 }

@@ -1,4 +1,4 @@
-import { File, X, AlertTriangle } from 'lucide-react';
+import { File, X, AlertTriangle, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { FileEntry } from '@/types';
@@ -27,6 +27,12 @@ export function FileList({ files, onRemove, selectedId, onSelect }: FileListProp
           >
             <File className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 truncate">{entry.originalName}</span>
+            {entry.dbMatch && (
+              <Badge variant="outline" className="text-[10px] border-emerald-400 text-emerald-600 gap-1">
+                <Database className="h-2.5 w-2.5" />
+                Reconocido
+              </Badge>
+            )}
             <Badge variant="secondary" className="text-xs">
               {entry.extension.toUpperCase() || '?'}
             </Badge>

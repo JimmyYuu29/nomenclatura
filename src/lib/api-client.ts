@@ -6,11 +6,27 @@ export interface HealthResponse {
 }
 
 export interface MatchRecord {
+  hash: string;
   filename: string;
   version: number;
   fecha_documento: string;
   estado_documento: string;
   created_at: string;
+}
+
+export interface LookupByHashResponse {
+  found: boolean;
+  record: {
+    hash: string;
+    filename: string;
+    alias_cliente: string;
+    servicio_ax: string;
+    periodo_servicio: string;
+    acronimo: string;
+    fecha_documento: string;
+    version: number;
+    estado_documento: string;
+  } | null;
 }
 
 export interface VerifyResponse {
@@ -73,6 +89,20 @@ export async function findMatches(fields: {
     return data.matches || [];
   } catch {
     return [];
+  }
+}
+
+export async function lookupByHash(hash: string): Promise<LookupByHashResponse | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/records/lookup-by-hash`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
 }
 

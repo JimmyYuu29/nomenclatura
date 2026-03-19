@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Download, Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,13 +10,16 @@ import { NomenclaturaForm } from '@/components/form/NomenclaturaForm';
 import { buildFileName } from '@/lib/name-builder';
 import { validateFields } from '@/lib/validation';
 import { renameFile } from '@/lib/file-rename';
+import { computeFileHash } from '@/lib/file-hash';
+import { storeRecord } from '@/lib/api-client';
+import { formatDateYYYYMMDD } from '@/lib/date-formatter';
 import { cn } from '@/lib/utils';
 
 interface BatchRenamePanelProps {
   files: FileEntry[];
   onUpdateFields: (id: string, fields: Partial<NomenclaturaFields>) => void;
   clientSuggestions: string[];
-  onRenameComplete: (originalName: string, newName: string, fields: NomenclaturaFields, file: File) => void;
+  onRenameComplete: (originalName: string, newName: string, fields: NomenclaturaFields, file: File, fileHash?: string | null) => void;
 }
 
 export function BatchRenamePanel({
@@ -54,13 +58,46 @@ export function BatchRenamePanel({
         setResults(prev => ({ ...prev, [file.id]: 'error' }));
       } else {
         const newName = buildFileName(file.fields, file.extension);
+
+        // 1. Compute hash
+        let hash = file.fileHash;
+        if (!hash) {
+          try {
+            hash = await computeFileHash(file.file);
+          } catch {
+            // proceed without hash
+          }
+        }
+
+        // 2. Save to DB
+        if (hash) {
+          const saved = await storeRecord({
+            hash,
+            filename: newName,
+            fields: {
+              aliasCliente: file.fields.aliasCliente,
+              servicioAX: file.fields.servicioAX,
+              periodoServicio: formatDateYYYYMMDD(file.fields.periodoServicio),
+              acronimoDocumento: file.fields.acronimoDocumento,
+              acronimoSufijo: file.fields.acronimoSufijo,
+              fechaDocumento: formatDateYYYYMMDD(file.fields.fechaDocumento),
+              version: file.fields.version,
+              estadoDocumento: file.fields.estadoDocumento,
+            },
+          });
+          if (saved) {
+            toast.success(`Guardado en base de datos: ${newName}`);
+          }
+        }
+
+        // 3. Rename / download
         const result = await renameFile(file.file, newName);
         setResults(prev => ({
           ...prev,
           [file.id]: result.success ? 'success' : 'error',
         }));
         if (result.success) {
-          onRenameComplete(file.originalName, newName, file.fields, file.file);
+          onRenameComplete(file.originalName, newName, file.fields, file.file, hash);
         }
       }
       setProgress(((i + 1) / files.length) * 100);

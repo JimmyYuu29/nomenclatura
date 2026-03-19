@@ -87,7 +87,7 @@ export function parseNomenclaturaName(filename: string): Partial<NomenclaturaFie
  * Intenta separar un acrónimo en base + sufijo.
  * Ej: "ACTCOMITE" → { acronimoBase: "ACT", acronimoSufijo: "COMITE" }
  */
-function parseAcronimo(acronimo: string): { acronimoBase: string; acronimoSufijo: string } {
+export function parseAcronimo(acronimo: string): { acronimoBase: string; acronimoSufijo: string } {
   const upper = acronimo.toUpperCase();
 
   // Primero intentar coincidencia exacta

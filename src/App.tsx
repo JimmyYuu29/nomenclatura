@@ -85,8 +85,11 @@ function App() {
     ? selectedFile.fields
     : fields;
 
-  // Version suggestion from database
-  const { suggestedVersion, matchingRecords } = useVersionSuggestion(currentFields);
+  // Version suggestion from database (with hash comparison)
+  const { suggestedVersion, matchingRecords, hashComparison } = useVersionSuggestion(
+    currentFields,
+    selectedFile?.fileHash
+  );
 
   // Compute validation from the actual fields being displayed/edited
   const currentValidationErrors = useMemo(
@@ -123,39 +126,56 @@ function App() {
 
     try {
       const newName = buildFileName(currentFields, selectedFile.extension);
+
+      // 1. Compute hash (use cached if available)
+      let hash = selectedFile.fileHash;
+      if (!hash) {
+        try {
+          hash = await computeFileHash(selectedFile.file);
+        } catch {
+          // Hash computation failed — proceed without DB save
+        }
+      }
+
+      // 2. Save to database
+      if (hash) {
+        const saved = await storeRecord({
+          hash,
+          filename: newName,
+          fields: {
+            aliasCliente: currentFields.aliasCliente,
+            servicioAX: currentFields.servicioAX,
+            periodoServicio: formatDateYYYYMMDD(currentFields.periodoServicio),
+            acronimoDocumento: currentFields.acronimoDocumento,
+            acronimoSufijo: currentFields.acronimoSufijo,
+            fechaDocumento: formatDateYYYYMMDD(currentFields.fechaDocumento),
+            version: currentFields.version,
+            estadoDocumento: currentFields.estadoDocumento,
+          },
+        });
+        if (saved) {
+          toast.success('Guardado en base de datos');
+        }
+      }
+
+      // 3. Rename / download
       const result = await renameFile(selectedFile.file, newName);
 
       if (result.success) {
-        // Save to history
-        addEntry({
-          originalName: selectedFile.originalName,
-          newName,
-          aliasCliente: currentFields.aliasCliente,
-          servicioAX: currentFields.servicioAX,
-          acronimoDocumento: currentFields.acronimoDocumento,
-          estadoDocumento: currentFields.estadoDocumento,
-        });
-
-        // Save alias for autocomplete
-        saveAlias(currentFields.aliasCliente);
-
-        // Store hash + record in database (fire-and-forget)
-        computeFileHash(selectedFile.file).then(hash => {
-          storeRecord({
-            hash,
-            filename: newName,
-            fields: {
-              aliasCliente: currentFields.aliasCliente,
-              servicioAX: currentFields.servicioAX,
-              periodoServicio: formatDateYYYYMMDD(currentFields.periodoServicio),
-              acronimoDocumento: currentFields.acronimoDocumento,
-              acronimoSufijo: currentFields.acronimoSufijo,
-              fechaDocumento: formatDateYYYYMMDD(currentFields.fechaDocumento),
-              version: currentFields.version,
-              estadoDocumento: currentFields.estadoDocumento,
-            },
+        // Save to history (non-critical)
+        try {
+          addEntry({
+            originalName: selectedFile.originalName,
+            newName,
+            aliasCliente: currentFields.aliasCliente,
+            servicioAX: currentFields.servicioAX,
+            acronimoDocumento: currentFields.acronimoDocumento,
+            estadoDocumento: currentFields.estadoDocumento,
           });
-        }).catch(() => {});
+          saveAlias(currentFields.aliasCliente);
+        } catch {
+          // localStorage may fail — don't block the success toast
+        }
 
         toast.success(result.message);
       } else {
@@ -183,20 +203,25 @@ function App() {
   );
 
   const handleBatchRenameComplete = useCallback(
-    (originalName: string, newName: string, batchFields: NomenclaturaFields, file: File) => {
-      addEntry({
-        originalName,
-        newName,
-        aliasCliente: batchFields.aliasCliente,
-        servicioAX: batchFields.servicioAX,
-        acronimoDocumento: batchFields.acronimoDocumento,
-        estadoDocumento: batchFields.estadoDocumento,
-      });
-      addClientAlias(batchFields.aliasCliente);
+    (originalName: string, newName: string, batchFields: NomenclaturaFields, file: File, fileHash?: string | null) => {
+      try {
+        addEntry({
+          originalName,
+          newName,
+          aliasCliente: batchFields.aliasCliente,
+          servicioAX: batchFields.servicioAX,
+          acronimoDocumento: batchFields.acronimoDocumento,
+          estadoDocumento: batchFields.estadoDocumento,
+        });
+        addClientAlias(batchFields.aliasCliente);
+      } catch {
+        // localStorage may fail
+      }
 
-      // Store hash + record in database (fire-and-forget)
-      computeFileHash(file).then(hash => {
-        storeRecord({
+      // Store hash + record in database
+      const doStore = async () => {
+        const hash = fileHash || await computeFileHash(file);
+        await storeRecord({
           hash,
           filename: newName,
           fields: {
@@ -210,7 +235,8 @@ function App() {
             estadoDocumento: batchFields.estadoDocumento,
           },
         });
-      }).catch(() => {});
+      };
+      doStore().catch(() => {});
     },
     [addEntry]
   );
@@ -298,6 +324,7 @@ function App() {
                       detectedVersion={selectedFile?.detectedVersion}
                       suggestedVersion={suggestedVersion}
                       matchingRecords={matchingRecords}
+                      hashComparison={hashComparison}
                     />
                   </CardContent>
                 </Card>

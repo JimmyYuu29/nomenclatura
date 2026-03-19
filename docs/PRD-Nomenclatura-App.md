@@ -1,8 +1,8 @@
 # PRD - Aplicación de Nomenclatura Unificada de Documentos
 ## Forvis Mazars - Sistema de Renombrado Automático de Archivos
 
-**Versión:** 2.1
-**Fecha:** 2026-03-18
+**Versión:** 2.2
+**Fecha:** 2026-03-19
 **Estado:** DEF
 **Autor:** Equipo de Desarrollo
 
@@ -336,10 +336,12 @@ Adicionalmente, el sistema se integrará con **Microsoft Teams** mediante un cha
 **Descripción:** Sistema de base de datos SQLite en el servidor que registra cada archivo renombrado y permite verificación de integridad y sugerencia de versiones.
 
 **Criterios de Aceptación:**
-- Al renombrar un archivo exitosamente, se calcula su hash SHA-256 (cliente) y se almacena en la base de datos junto con el nombre generado y los campos de nomenclatura
+- Al hacer clic en "Renombrar y guardar", primero se calcula el hash SHA-256 del archivo, luego se almacena el registro en la base de datos (mostrando "Guardado en base de datos"), y finalmente se descarga/guarda el archivo renombrado
 - Cuando un archivo nuevo coincide con registros existentes en alias, servicio, periodo y acrónimo (excluyendo fecha, versión y estado), el sistema sugiere automáticamente la siguiente versión disponible
 - La sugerencia de versión muestra los archivos relacionados como referencia, pero el usuario puede elegir cualquier versión manualmente
-- Al subir un archivo que ya sigue la nomenclatura, el sistema calcula su hash y lo compara con el registro en la base de datos; si el contenido ha cambiado, muestra una alerta recomendando cambiar el nombre o incrementar la versión
+- **Reconocimiento automático por hash:** Al subir un archivo cuyo hash SHA-256 ya existe en la base de datos, el sistema auto-rellena todos los campos del formulario (alias, servicio, periodo, acrónimo, fecha, versión, estado) a partir del registro existente, y muestra una badge "Reconocido" en la lista de archivos
+- **Sugerencia de versión basada en hash:** Si el hash del archivo coincide con un registro existente (contenido sin cambios), se sugiere mantener la misma versión; si el hash difiere (contenido modificado), se sugiere incrementar la versión
+- **Sugerencia de estado:** Cuando el archivo es reconocido desde la base de datos, el campo "Estado del Documento" muestra el estado registrado como referencia y permite al usuario decidir si cambiarlo
 - La base de datos se almacena en `/home/rootadmin/data/nomenclatura/nomenclatura.db` y se crea automáticamente al iniciar la aplicación
 - El pie de página muestra un indicador de conexión a la base de datos (verde = conectada, rojo = no disponible)
 - Todas las funciones de base de datos son opcionales — la aplicación funciona normalmente sin el backend API
@@ -348,7 +350,7 @@ Adicionalmente, el sistema se integrará con **Microsoft Teams** mediante un cha
 - Backend: Express.js con better-sqlite3 en puerto 3001
 - Hash: Web Crypto API (SHA-256) calculado en el navegador
 - Proxy: Nginx reenvía `/api/*` al backend Node.js
-- Endpoints: `/api/health`, `/api/records`, `/api/records/match`, `/api/records/verify`
+- Endpoints: `/api/health`, `/api/records`, `/api/records/match`, `/api/records/verify`, `/api/records/lookup-by-hash`
 
 ### 6.13 RF-13: Historial y Favoritos
 
@@ -780,3 +782,4 @@ DRF ──▶ REV ──▶ OBS ──▶ REV (ciclo revisión)
 | 1.0 | 2026-03-09 | Versión inicial del PRD |
 | 2.0 | 2026-03-10 | Catálogos actualizados (revisión Belén V2). Actualización de catálogos por Excel con protección por contraseña. Selector de año/mes optimizado en campos de fecha. Selector de departamento (Auditoría / Otros). Pie de página corporativo IT Innovation. |
 | 2.1 | 2026-03-18 | Base de datos SQLite para verificación de integridad (hash SHA-256). Sugerencia automática de versión basada en registros existentes. Alerta de integridad al detectar contenido modificado. Indicador de conexión a base de datos en el pie de página. Backend Express.js con API REST. Arquitectura Docker actualizada a Node.js + Nginx. |
+| 2.2 | 2026-03-19 | Reconocimiento automático de archivos por hash: auto-relleno de todos los campos al detectar archivo existente en BD. Sugerencia de versión basada en comparación de hash (mantener vs. incrementar). Sugerencia de estado del documento. Flujo de renombrado mejorado: hash → guardar en BD → confirmar → descargar. Nuevo endpoint `/api/records/lookup-by-hash`. Corrección de error en el flujo de renombrado. |

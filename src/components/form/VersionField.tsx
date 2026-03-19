@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import type { MatchRecord } from '@/lib/api-client';
+import type { HashComparison } from '@/hooks/use-version-suggestion';
 
 interface VersionFieldProps {
   value: number;
@@ -17,6 +18,7 @@ interface VersionFieldProps {
   detectedVersion?: number | null;
   suggestedVersion?: number | null;
   matchingRecords?: MatchRecord[];
+  hashComparison?: HashComparison | null;
   disabled?: boolean;
 }
 
@@ -26,6 +28,7 @@ export function VersionField({
   detectedVersion,
   suggestedVersion,
   matchingRecords,
+  hashComparison,
   disabled = false,
 }: VersionFieldProps) {
   const [showMatches, setShowMatches] = useState(false);
@@ -40,7 +43,23 @@ export function VersionField({
             Detectada: v{detectedVersion}
           </Badge>
         )}
-        {suggestedVersion && (
+        {hashComparison?.hashMatched && hashComparison.matchedVersion != null ? (
+          <Badge
+            variant="outline"
+            className="text-[10px] border-emerald-400 text-emerald-600 cursor-pointer hover:bg-emerald-50"
+            onClick={() => onChange(hashComparison.matchedVersion!)}
+          >
+            Contenido sin cambios — mantener v{hashComparison.matchedVersion}
+          </Badge>
+        ) : hashComparison && !hashComparison.hashMatched && suggestedVersion ? (
+          <Badge
+            variant="outline"
+            className="text-[10px] border-amber-400 text-amber-600 cursor-pointer hover:bg-amber-50"
+            onClick={() => onChange(suggestedVersion)}
+          >
+            Contenido modificado — sugerida v{suggestedVersion}
+          </Badge>
+        ) : suggestedVersion ? (
           <Badge
             variant="outline"
             className="text-[10px] border-amber-400 text-amber-600 cursor-pointer hover:bg-amber-50"
@@ -48,7 +67,7 @@ export function VersionField({
           >
             Sugerida: v{suggestedVersion}
           </Badge>
-        )}
+        ) : null}
       </div>
       <Select
         value={String(value)}

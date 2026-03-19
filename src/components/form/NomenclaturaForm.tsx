@@ -1,5 +1,6 @@
 import type { NomenclaturaFields } from '@/types';
 import type { MatchRecord } from '@/lib/api-client';
+import type { HashComparison } from '@/hooks/use-version-suggestion';
 import { AliasClienteField } from './AliasClienteField';
 import { ServicioAXField } from './ServicioAXField';
 import { PeriodoServicioField } from './PeriodoServicioField';
@@ -15,6 +16,7 @@ interface NomenclaturaFormProps {
   detectedVersion?: number | null;
   suggestedVersion?: number | null;
   matchingRecords?: MatchRecord[];
+  hashComparison?: HashComparison | null;
   disabled?: boolean;
 }
 
@@ -25,6 +27,7 @@ export function NomenclaturaForm({
   detectedVersion,
   suggestedVersion,
   matchingRecords,
+  hashComparison,
   disabled = false,
 }: NomenclaturaFormProps) {
   return (
@@ -63,11 +66,13 @@ export function NomenclaturaForm({
         detectedVersion={detectedVersion}
         suggestedVersion={suggestedVersion}
         matchingRecords={matchingRecords}
+        hashComparison={hashComparison}
         disabled={disabled}
       />
       <EstadoDocumentoField
         value={fields.estadoDocumento}
         onChange={v => setField('estadoDocumento', v)}
+        hashComparison={hashComparison}
         disabled={disabled}
       />
     </div>

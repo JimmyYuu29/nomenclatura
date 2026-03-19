@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb, insertRecord, findMatches, verifyByFilename } from './db.js';
+import { getDb, insertRecord, findMatches, findByHash, verifyByFilename } from './db.js';
 import type { FileRecord } from './db.js';
 
 export const router = Router();
@@ -84,6 +84,29 @@ router.post('/records/match', (req, res) => {
     res.json({ matches });
   } catch (err) {
     console.error('Error finding matches:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/records/lookup-by-hash', (req, res) => {
+  try {
+    const { hash } = req.body as { hash: string };
+
+    if (!hash) {
+      res.status(400).json({ error: 'Missing hash' });
+      return;
+    }
+
+    const record = findByHash(hash);
+
+    if (!record) {
+      res.json({ found: false, record: null });
+      return;
+    }
+
+    res.json({ found: true, record });
+  } catch (err) {
+    console.error('Error looking up by hash:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

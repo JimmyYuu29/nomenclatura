@@ -66,12 +66,24 @@ export function insertRecord(record: FileRecord): void {
 
 export function findMatches(alias_cliente: string, servicio_ax: string, periodo_servicio: string, acronimo: string) {
   const stmt = db!.prepare(`
-    SELECT filename, version, fecha_documento, estado_documento, created_at
+    SELECT hash, filename, version, fecha_documento, estado_documento, created_at
     FROM file_records
     WHERE alias_cliente = ? AND servicio_ax = ? AND periodo_servicio = ? AND acronimo = ?
     ORDER BY version DESC
   `);
   return stmt.all(alias_cliente, servicio_ax, periodo_servicio, acronimo);
+}
+
+export function findByHash(hash: string) {
+  const stmt = db!.prepare(`
+    SELECT hash, filename, alias_cliente, servicio_ax, periodo_servicio, acronimo,
+           fecha_documento, version, estado_documento, created_at
+    FROM file_records
+    WHERE hash = ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `);
+  return stmt.get(hash) as (FileRecord & { created_at: string }) | undefined;
 }
 
 export function verifyByFilename(filename: string) {

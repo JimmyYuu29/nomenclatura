@@ -9,6 +9,18 @@ export interface NomenclaturaFields {
   estadoDocumento: string;
 }
 
+export interface DbMatchRecord {
+  hash: string;
+  filename: string;
+  alias_cliente: string;
+  servicio_ax: string;
+  periodo_servicio: string;
+  acronimo: string;
+  fecha_documento: string;
+  version: number;
+  estado_documento: string;
+}
+
 export interface FileEntry {
   id: string;
   file: File;
@@ -20,6 +32,8 @@ export interface FileEntry {
   isValid: boolean;
   validationErrors: ValidationError[];
   integrityWarning?: string | null;
+  fileHash: string | null;
+  dbMatch: DbMatchRecord | null;
 }
 
 export interface ValidationError {
