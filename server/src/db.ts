@@ -86,6 +86,18 @@ export function findByHash(hash: string) {
   return stmt.get(hash) as (FileRecord & { created_at: string }) | undefined;
 }
 
+export function findByFilename(filename: string) {
+  const stmt = db!.prepare(`
+    SELECT hash, filename, alias_cliente, servicio_ax, periodo_servicio, acronimo,
+           fecha_documento, version, estado_documento, created_at
+    FROM file_records
+    WHERE filename = ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `);
+  return stmt.get(filename) as (FileRecord & { created_at: string }) | undefined;
+}
+
 export function verifyByFilename(filename: string) {
   const stmt = db!.prepare(`
     SELECT hash, filename FROM file_records WHERE filename = ? ORDER BY created_at DESC LIMIT 1

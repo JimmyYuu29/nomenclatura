@@ -8,7 +8,8 @@ import { detectVersion } from '@/lib/version-detector';
 import { parseNomenclaturaName, parseAcronimo } from '@/lib/name-parser';
 import { parseDateYYYYMMDD } from '@/lib/date-formatter';
 import { computeFileHash } from '@/lib/file-hash';
-import { lookupByHash } from '@/lib/api-client';
+import { lookupByHash, lookupByFilename } from '@/lib/api-client';
+import { buildFileName } from '@/lib/name-builder';
 
 interface UseFileDropReturn {
   files: FileEntry[];
@@ -71,27 +72,27 @@ export function useFileDrop(): UseFileDropReturn {
       try {
         const hash = await computeFileHash(entry.file);
 
-        // Update the hash on the entry
+        // Update the hash on the entry immediately
         setFiles(prev =>
           prev.map(f =>
             f.id === entry.id ? { ...f, fileHash: hash } : f
           )
         );
 
-        // Look up by hash in the database
-        const result = await lookupByHash(hash);
+        // Strategy 1: Look up by hash (most accurate — same content)
+        const hashResult = await lookupByHash(hash);
 
-        if (result?.found && result.record) {
+        if (hashResult?.found && hashResult.record) {
           const dbMatch: DbMatchRecord = {
-            hash: result.record.hash,
-            filename: result.record.filename,
-            alias_cliente: result.record.alias_cliente,
-            servicio_ax: result.record.servicio_ax,
-            periodo_servicio: result.record.periodo_servicio,
-            acronimo: result.record.acronimo,
-            fecha_documento: result.record.fecha_documento,
-            version: result.record.version,
-            estado_documento: result.record.estado_documento,
+            hash: hashResult.record.hash,
+            filename: hashResult.record.filename,
+            alias_cliente: hashResult.record.alias_cliente,
+            servicio_ax: hashResult.record.servicio_ax,
+            periodo_servicio: hashResult.record.periodo_servicio,
+            acronimo: hashResult.record.acronimo,
+            fecha_documento: hashResult.record.fecha_documento,
+            version: hashResult.record.version,
+            estado_documento: hashResult.record.estado_documento,
           };
 
           const autoFields = dbRecordToFields(dbMatch);
@@ -108,9 +109,63 @@ export function useFileDrop(): UseFileDropReturn {
                 : f
             )
           );
+          continue; // Done — hash matched
         }
-      } catch {
-        // Silently ignore — DB may be unavailable
+
+        // Strategy 2: Look up by filename (for files with same name but modified content)
+        // Try the original filename first, then the nomenclatura-built name from parsed fields
+        const filenameCandidates: string[] = [entry.originalName];
+
+        // If filename parsing filled the fields, also try the canonical built name
+        const parsedFields = parseNomenclaturaName(entry.originalName);
+        if (parsedFields && entry.extension) {
+          const builtName = buildFileName(
+            { ...createDefaultFields(), ...parsedFields },
+            entry.extension
+          );
+          if (builtName !== entry.originalName) {
+            filenameCandidates.push(builtName);
+          }
+        }
+
+        for (const candidate of filenameCandidates) {
+          const fnResult = await lookupByFilename(candidate);
+          if (fnResult?.found && fnResult.record) {
+            const dbMatch: DbMatchRecord = {
+              hash: fnResult.record.hash,
+              filename: fnResult.record.filename,
+              alias_cliente: fnResult.record.alias_cliente,
+              servicio_ax: fnResult.record.servicio_ax,
+              periodo_servicio: fnResult.record.periodo_servicio,
+              acronimo: fnResult.record.acronimo,
+              fecha_documento: fnResult.record.fecha_documento,
+              version: fnResult.record.version,
+              estado_documento: fnResult.record.estado_documento,
+            };
+
+            const autoFields = dbRecordToFields(dbMatch);
+
+            setFiles(prev =>
+              prev.map(f =>
+                f.id === entry.id
+                  ? {
+                      ...f,
+                      fileHash: hash,
+                      dbMatch,
+                      fields: { ...createDefaultFields(), ...autoFields },
+                    }
+                  : f
+              )
+            );
+            break; // Done — filename matched
+          }
+        }
+
+        // Strategy 3: Filename parsing (already done in processFile — fields are set)
+        // Nothing extra needed here.
+
+      } catch (e) {
+        console.warn('[nomenclatura] resolveFromDatabase failed for', entry.originalName, e);
       }
     }
   }, []);

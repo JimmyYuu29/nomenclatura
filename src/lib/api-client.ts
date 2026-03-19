@@ -106,6 +106,20 @@ export async function lookupByHash(hash: string): Promise<LookupByHashResponse |
   }
 }
 
+export async function lookupByFilename(filename: string): Promise<LookupByHashResponse | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/records/lookup-by-filename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyHash(hash: string, filename: string): Promise<VerifyResponse | null> {
   try {
     const res = await fetch(`${BASE_URL}/records/verify`, {

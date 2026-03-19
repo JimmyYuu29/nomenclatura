@@ -33,39 +33,45 @@ export function parseNomenclaturaName(filename: string): Partial<NomenclaturaFie
   const estadoValido = estadosDocumento.some(e => e.codigo === estadoPart.toUpperCase());
   if (!estadoValido) return null;
 
+  // Fecha del documento (posición -3 desde el final): YYYYMMDD
+  const fechaStr = parts[parts.length - 3];
+  const fecha = parseDateYYYYMMDD(fechaStr);
+
   // El alias es el primer segmento
   const alias = parts[0];
 
-  // Buscar el servicio AX (puede contener guiones bajos pero no guiones en la nomenclatura)
-  // El servicio está en la posición 1 y puede ser compuesto (AUD_CAOIN)
-  // Intentamos buscar servicio en posición 1
-  let servicioIdx = 1;
-  let servicio = parts[servicioIdx];
+  // Middle parts: everything between alias and fecha
+  // Contains: SERVICE, PERIODO, ACRONIMO
+  const middleParts = parts.slice(1, parts.length - 3);
 
-  // Verificar si el servicio existe en el catálogo
+  // Find PERIODO: first valid 8-digit date in middle parts
+  let periodoLocalIdx = -1;
+  for (let i = 0; i < middleParts.length; i++) {
+    if (/^\d{8}$/.test(middleParts[i]) && parseDateYYYYMMDD(middleParts[i])) {
+      periodoLocalIdx = i;
+      break;
+    }
+  }
+  if (periodoLocalIdx < 0) return null;
+
+  // SERVICE: parts before periodo (may contain hyphens, e.g. CON_GRC-ER)
+  const servicioParts = middleParts.slice(0, periodoLocalIdx);
+  if (servicioParts.length === 0) return null;
+
+  const servicio = servicioParts.join('-');
   const servicioEncontrado = serviciosAX.find(
     s => s.codigo.toUpperCase() === servicio.toUpperCase()
   );
+  if (!servicioEncontrado) return null;
 
-  if (!servicioEncontrado) {
-    // Intentar combinar partes con guion bajo (puede ser que el servicio tenga guiones bajos
-    // que se representan como guiones en la nomenclatura, pero según la norma se mantienen
-    // los guiones bajos dentro del código)
-    return null;
-  }
-
-  // Periodo de servicio (posición 2): YYYYMMDD
-  const periodoStr = parts[2];
+  // PERIODO
+  const periodoStr = middleParts[periodoLocalIdx];
   const periodo = parseDateYYYYMMDD(periodoStr);
-  if (!periodo && periodoStr.length !== 8) return null;
 
-  // Fecha del documento (posición -3 desde el final): YYYYMMDD
-  const fechaIdx = parts.length - 3;
-  const fechaStr = parts[fechaIdx];
-  const fecha = parseDateYYYYMMDD(fechaStr);
+  // ACRONIMO: parts after periodo (within middle)
+  const acronimoParts = middleParts.slice(periodoLocalIdx + 1);
+  if (acronimoParts.length === 0) return null;
 
-  // Acrónimo: todo lo que está entre periodo y fecha
-  const acronimoParts = parts.slice(3, fechaIdx);
   const acronimoCompleto = acronimoParts.join('-');
 
   // Intentar separar acrónimo base y sufijo
