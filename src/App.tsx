@@ -461,7 +461,7 @@ function App() {
         <div className="mx-auto max-w-5xl px-4 py-3 text-center">
           <DatabaseIndicator />
           <p className="text-xs text-muted-foreground">
-            Desarrollado por IT Innovation V2.0 · Carrer de la Diputació, 260, Eixample, 08007 Barcelona
+            Desarrollado por IT Innovation V2.2 · Carrer de la Diputació, 260, Eixample, 08007 Barcelona
           </p>
         </div>
       </footer>
