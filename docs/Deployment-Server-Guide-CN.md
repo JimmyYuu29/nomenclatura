@@ -345,14 +345,20 @@ Type=simple
 User=rootadmin
 WorkingDirectory=/opt/nomenclatura-api
 ExecStart=/usr/bin/node dist/index.js
-Restart=on-failure
+Restart=always
 RestartSec=5
 Environment=PORT=3001
 Environment=DB_PATH=/home/rootadmin/data/nomenclatura
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# 创建数据库目录
+sudo mkdir -p /home/rootadmin/data/nomenclatura
+sudo chown -R rootadmin:rootadmin /home/rootadmin/data/nomenclatura
 
 sudo systemctl daemon-reload
 sudo systemctl enable nomenclatura-api
@@ -526,16 +532,22 @@ After=network.target
 [Service]
 Type=simple
 User=rootadmin
-WorkingDirectory=/home/rootadmin/portal-suite/nomenclatura-api
+WorkingDirectory=/home/rootadmin/portal-suite/nomenclatura_api
 ExecStart=/usr/bin/node dist/index.js
-Restart=on-failure
+Restart=always
 RestartSec=5
 Environment=PORT=3001
 Environment=DB_PATH=/home/rootadmin/data/nomenclatura
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# 创建数据库目录
+sudo mkdir -p /home/rootadmin/data/nomenclatura
+sudo chown -R rootadmin:rootadmin /home/rootadmin/data/nomenclatura
 
 sudo systemctl daemon-reload
 sudo systemctl enable nomenclatura_api
@@ -668,13 +680,13 @@ sudo systemctl status nomenclatura_api
 sudo journalctl -u nomenclatura -f
 
 # 查看后端 API 实时日志
-sudo journalctl -u nomenclatura-api -f
+sudo journalctl -u nomenclatura_api -f
 
 # 重启前端服务
 sudo systemctl restart nomenclatura
 
 # 重启后端 API 服务
-sudo systemctl restart nomenclatura-api
+sudo systemctl restart nomenclatura_api
 
 # 停止所有服务
 sudo systemctl stop nomenclatura nomenclatura_api
@@ -699,9 +711,10 @@ cd server
 npm ci
 npm run build
 sudo cp -r dist node_modules package.json /home/rootadmin/portal-suite/nomenclatura_api/
+sudo chown -R rootadmin:rootadmin /home/rootadmin/portal-suite/nomenclatura_api
 
 # 重启所有服务
-sudo systemctl restart nomenclatura nomenclaturaapi
+sudo systemctl restart nomenclatura nomenclatura_api
 ```
 
 ---

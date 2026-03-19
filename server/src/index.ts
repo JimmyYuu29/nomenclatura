@@ -18,3 +18,6 @@ if (!dbReady) {
 app.listen(PORT, () => {
   console.log(`Nomenclatura API running on port ${PORT}`);
 });
+
+// Keep the event loop alive — workaround for Express 5 + ESM
+setInterval(() => {}, 1 << 30);
